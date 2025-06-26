@@ -82,7 +82,7 @@ class TSegFormer(nn.Module):
         self.part_num = part_num
         self.args = args
 
-        self.conv1 = nn.Conv1d(7, 64, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv1d(8, 64, kernel_size=1, bias=False)
         self.conv2 = nn.Conv1d(64, 64, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm1d(64)
         self.bn2 = nn.BatchNorm1d(64)
