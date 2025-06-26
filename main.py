@@ -17,7 +17,7 @@ import tqdm
 
 seg2colors = {}
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5,6'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 
 def _init_(args):

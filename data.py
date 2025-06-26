@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 from torch.utils.data import Dataset
+import torch
 
 
 def data_load(DATA_PATH):
@@ -28,11 +29,15 @@ class Teeth(Dataset):
         self.num_points = num_points
         self.data_paths = []
         self.data_paths_pure = []
-        for folder in os.listdir(ROOT_PATH):
-            FOLDER_PATH = os.path.join(ROOT_PATH, folder)
-            if os.path.isdir(FOLDER_PATH):
-                symbol = os.listdir(FOLDER_PATH)[0][0]
-                self.data_paths_pure.append(os.path.join(FOLDER_PATH, symbol + "_aligned.json"))
+        # for folder in os.listdir(ROOT_PATH):
+        #     FOLDER_PATH = os.path.join(ROOT_PATH, folder)
+        #     if os.path.isdir(FOLDER_PATH):
+        #         symbol = os.listdir(FOLDER_PATH)[0][0]
+        #         self.data_paths_pure.append(os.path.join(FOLDER_PATH, symbol + "_aligned.json"))
+
+        for file_name in os.listdir(ROOT_PATH):
+            if file_name.endswith('.json'):
+                self.data_paths_pure.append(os.path.join(ROOT_PATH, file_name))
 
         if partition == "val":
             self.data_paths = self.data_paths_pure[:2000]
@@ -47,6 +52,11 @@ class Teeth(Dataset):
         indices = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
         pointcloud = pointcloud[indices]
         label = label[indices]
+
+        # 转为 tensor
+        pointcloud = torch.from_numpy(pointcloud)  # shape: (num_points, 8)
+        label = torch.from_numpy(label)  # shape: (num_points,)
+        category = torch.from_numpy(category)  # shape: (num_points, 2)
 
         return pointcloud, category, label
 

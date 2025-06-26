@@ -90,8 +90,8 @@ class TSegFormer(nn.Module):
         self.gather_local_1 = Local_op(in_channels=128, out_channels=128)
         self.pt_last = Point_Transformer_Last(args)
         self.conv_fuse = nn.Sequential(nn.Conv1d(512, 1024, kernel_size=1, bias=False),
-                                       nn.BatchNorm1d(1024),
-                                       nn.LeakyReLU(negative_slope=0.2))
+                                        nn.BatchNorm1d(1024),
+                                        nn.LeakyReLU(negative_slope=0.2))
         self.label_conv = nn.Sequential(nn.Conv1d(2, 64, kernel_size=1, bias=False),
                                         nn.BatchNorm1d(64),
                                         nn.LeakyReLU(negative_slope=0.2))
