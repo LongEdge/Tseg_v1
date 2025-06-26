@@ -52,6 +52,7 @@ class Teeth(Dataset):
         indices = np.random.choice(pointcloud.shape[0], self.num_points, replace=False)
         pointcloud = pointcloud[indices]
         label = label[indices]
+        category=category[indices]
 
         # 转为 tensor
         pointcloud = torch.from_numpy(pointcloud)  # shape: (num_points, 8)
