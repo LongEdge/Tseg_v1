@@ -21,6 +21,10 @@ seg2colors = {}
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 
 
+# 设置打印选项，增加显示的列数
+np.set_printoptions(precision=4, linewidth=1000)  # precision 控制小数点后的位数，linewidth 控制每行的字符数
+
+
 def _init_(args):
     if not os.path.exists(args.save_path + '/' + args.exp_name + '/' + 'models'):
         os.makedirs(args.save_path + '/' + args.exp_name + '/' + 'models')
@@ -128,6 +132,7 @@ def train(args, io):
                 train_loss_seg += loss_seg.item() * batch_size
                 seg_np = seg.cpu().numpy()
                 pred_np = pred.detach().cpu().numpy()
+                print(f"epoch{epoch} the train predict is {pred_np}")
                 train_true_cls.append(seg_np.reshape(-1))
                 train_pred_cls.append(pred_np.reshape(-1))
                 train_true_seg.append(seg_np)
@@ -163,7 +168,7 @@ def train(args, io):
         io.cprint(outstr)
 
         ####################
-        # Test
+        # Test (修复后)
         ####################
         test_loss = 0.0
         test_loss_ging = 0.0
@@ -213,6 +218,7 @@ def train(args, io):
                 test_loss_seg += loss_seg.item() * batch_size
                 seg_np = seg.cpu().numpy()
                 pred_np = pred.detach().cpu().numpy()
+                print(f"epoch{epoch} the test predict is {pred_np}")
                 test_true_cls.append(seg_np.reshape(-1))
                 test_pred_cls.append(pred_np.reshape(-1))
                 test_true_seg.append(seg_np)
@@ -246,7 +252,29 @@ def train(args, io):
     io.cprint("best_test_iou: " + str(best_test_iou) + '; best_test_epoch: ' + str(best_test_epoch))
 
 
+def save_prediction_to_json(xyz, feature, seg_pred, file_path):
+    """
+    将预测结果保存为标准 JSON 格式，结构与原始数据一致。
+    :param xyz: 原始点坐标 (N, 3)
+    :param feature: 原始特征 (N, 5) （除去最后两个颜色特征）
+    :param seg_pred: 预测标签 (N,)
+    :param file_path: 输出路径
+    """
+    features=np.hstack((xyz, feature))
+    data = {
+        'feature': features.tolist(),  # [N, 8]
+        'label': seg_pred.tolist(),
+        'category': [0, 1]  # 可根据实际类别调整
+    }
+    with open(file_path, 'w') as f:
+        json.dump(data, f)
+
+
 def test(args, io):
+
+    pred_folder = './pred'
+    os.makedirs(pred_folder, exist_ok=True)
+
     test_loader = DataLoader(Teeth(partition='test', ROOT_PATH=args.data_path, num_points=args.num_points),
                              batch_size=args.test_batch_size, shuffle=True, drop_last=False)
     device = torch.device("cuda:0")
@@ -276,7 +304,7 @@ def test(args, io):
     sample_count = 0
 
     with torch.no_grad():
-        for data, label, seg in tqdm.tqdm(test_loader):
+        for idx, (data, label, seg) in enumerate(tqdm.tqdm(test_loader)):
             sample_count += data.shape[0]
             label_one_hot = label
 
@@ -316,6 +344,19 @@ def test(args, io):
             test_true_seg.append(seg_np)
             test_pred_seg.append(pred_np)
             test_label_seg.append(label[:, 0].type(torch.int32).reshape(-1))
+
+            for i in range(batch_size):
+                xyz = data[i, :3, :].cpu().numpy().T  # [N, 3]
+                feature = data[i, 3:8, :].cpu().numpy().T  # [N, 5]
+                seg_pred_i = pred[i]
+
+                file_name = f"pred_{idx}.json"
+                file_path = os.path.join(pred_folder, file_name)
+                save_prediction_to_json(xyz, feature, seg_pred_i, file_path)
+
+
+
+
         test_true_cls = np.concatenate(test_true_cls)
         test_pred_cls = np.concatenate(test_pred_cls)
         test_acc = metrics.accuracy_score(test_true_cls, test_pred_cls)
@@ -336,6 +377,9 @@ def test(args, io):
                   test_acc, avg_per_class_acc, np.mean(test_ious),
                   np.mean(all_f1), np.mean(all_ppv), np.mean(all_npv), np.mean(all_sensitivity),
                   np.mean(all_specificity))
+
+
+
     io.cprint(outstr)
 
 
@@ -389,6 +433,7 @@ if __name__ == "__main__":
                         help='Pre-trained model and log saving path')
     parser.add_argument('--batch_size', type=int, default=6, metavar='bs',
                         help='Size of batch when training)')
+
     parser.add_argument('--test_batch_size', type=int, default=8, metavar='test_bs',
                         help='Size of batch when testing)')
     parser.add_argument('--epochs', type=int, default=200, metavar='E',
@@ -416,7 +461,7 @@ if __name__ == "__main__":
                         help='Evaluate the model')
     parser.add_argument('--num_points', type=int, default=10000,
                         help='Number of downsampling points')
-    parser.add_argument('--model_path', type=str, default='', metavar='path',
+    parser.add_argument('--model_path', type=str, default='/data/coding/TSegFormer2/outputs/exp/models/best_model.t7', metavar='path',
                         help='Pretrained model path')
     args = parser.parse_args()
 
