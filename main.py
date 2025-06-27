@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from setuptools.sandbox import save_path
 from torch.optim.lr_scheduler import CosineAnnealingLR, StepLR
 from model import TSegFormer
 import numpy as np
@@ -49,6 +50,12 @@ def train(args, io):
     seg_num_all = 33
     model = TSegFormer(args, seg_num_all).to(device)
     model = nn.DataParallel(model, device_ids=[0, 1]).cuda(device)
+
+    #加载模型
+    if args.model_path:  # 如果提供了预训练模型路径
+        model.load_state_dict(torch.load(args.model_path,weights_only=True))
+        print(f"Loaded pretrained model from {args.model_path}")
+
     print("Let's use", torch.cuda.device_count(), "GPUs!")
 
     if args.use_sgd:
@@ -232,7 +239,10 @@ def train(args, io):
         if np.mean(test_ious) >= best_test_iou:
             best_test_iou = np.mean(test_ious)
             best_test_epoch = epoch
-            torch.save(model.state_dict(), os.path.join(args.save_path, '/%s/models/best_model.t7' % args.exp_name))
+            # torch.save(model.state_dict(), os.path.join(args.save_path, '/%s/models/best_model.t7' % args.exp_name))
+            # save_path=os.path.join(args.save_path, '/models/best_model.t7')
+            save_path=args.save_path+"/exp/models/best_model2.t7"
+            torch.save(model.state_dict(), save_path)
     io.cprint("best_test_iou: " + str(best_test_iou) + '; best_test_epoch: ' + str(best_test_epoch))
 
 

@@ -132,6 +132,8 @@ class TSegFormer(nn.Module):
         x_avg_feature = F.adaptive_avg_pool1d(x, 1).repeat(1, 1, N)
 
         cls_label_one_hot = cls_label.view(batch_size, 2, 1)
+        # cls_label=cls_label[:,0:1,:]
+        cls_label_one_hot = cls_label.view(batch_size, 2, 1).float()
         cls_label_feature = self.label_conv(cls_label_one_hot).repeat(1, 1, N)
         x_global_feature = torch.cat([x_max_feature, x_avg_feature, cls_label_feature], 1)
         all_fea = torch.cat((x, x_global_feature), 1)
